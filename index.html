@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Measurement Converter & Quants Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chatbot-container {
+            width: 500px;
+            height: 700px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+        }
+
+        .typing-indicator {
+            display: none;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 18px;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        #user-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+
+        #send-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        #send-btn:hover {
+            background: #0056b3;
+        }
+
+        .suggestions {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .suggestion-btn:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .conversion-result {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .conversion-result strong {
+            color: #2e7d32;
+        }
+
+        .quant-steps {
+            background: #f0f8ff;
+            border: 1px solid #007bff;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 13px;
+            color: #0056b3;
+        }
+
+        .capabilities-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            .chatbot-container {
+                width: 95%;
+                height: 90vh;
+                margin: 5vh 2.5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <div class="chat-header">
+            <div class="status-indicator"></div>
+            <h1>🤖 AI Converter + Quants Bot</h1>
+            <p>Unit conversions & math problem solver</p>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <div class="message-content">
+                    Hi! I'm your AI assistant that can help with:
+                    <br><br>
+                    <div class="capabilities-info">
+                        📏 <strong>Unit Conversions:</strong> length, weight, temperature, volume, area, time<br>
+                        🧮 <strong>Quants Problems:</strong><br>
+                        • Speed-Time-Distance calculations<br>  
+                        • Train crossing problems (relative speed)<br>
+                        • Boats & streams (upstream/downstream)<br>
+                        • Pipes & cisterns (filling/emptying)<br>
+                    </div>
+                    Just type your question naturally!
+                </div>
+            </div>
+
+            <div class="suggestions">
+                <button class="suggestion-btn" onclick="sendSuggestion('5 feet to meters')">5 ft → m</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('120 km at 60 km/h time?')">Distance/Speed → Time</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('train 100m at 20 m/s crosses 200m bridge time?')">Train crossing</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('boat 20 km downstream in 40 min, stream 2.5 km/h, return time?')">Boat problem</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('pipe A fills 6h, B fills 10h, together?')">Pipes together</button>
+            </div>
+
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Ask me anything... (e.g., '25 miles to km' or 'A travels 120km in 2h, speed?')" autocomplete="off">
+            <button id="send-btn" onclick="sendMessage()">
+                ➤
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Conversion factors and formulas
+        const conversions = {
+            length: {
+                meter: 1, m: 1, meters: 1, metre: 1, metres: 1,
+                kilometer: 1000, km: 1000, kilometers: 1000, kilometre: 1000, kilometres: 1000,
+                centimeter: 0.01, cm: 0.01, centimeters: 0.01, centimetre: 0.01, centimetres: 0.01,
+                millimeter: 0.001, mm: 0.001, millimeters: 0.001, millimetre: 0.001, millimetres: 0.001,
+                inch: 0.0254, inches: 0.0254, in: 0.0254,
+                foot: 0.3048, feet: 0.3048, ft: 0.3048,
+                yard: 0.9144, yards: 0.9144, yd: 0.9144,
+                mile: 1609.34, miles: 1609.34, mi: 1609.34
+            },
+            weight: {
+                kilogram: 1, kg: 1, kilograms: 1,
+                gram: 0.001, g: 0.001, grams: 0.001,
+                pound: 0.453592, pounds: 0.453592, lb: 0.453592, lbs: 0.453592,
+                ounce: 0.0283495, ounces: 0.0283495, oz: 0.0283495,
+                ton: 1000, tons: 1000, tonne: 1000, tonnes: 1000
+            },
+            volume: {
+                liter: 1, l: 1, liters: 1, litre: 1, litres: 1,
+                milliliter: 0.001, ml: 0.001, milliliters: 0.001, millilitre: 0.001, millilitres: 0.001,
+                gallon: 3.78541, gallons: 3.78541, gal: 3.78541,
+                quart: 0.946353, quarts: 0.946353, qt: 0.946353,
+                pint: 0.473176, pints: 0.473176, pt: 0.473176,
+                cup: 0.236588, cups: 0.236588,
+                fluidounce: 0.0295735, fluidounces: 0.0295735, floz: 0.0295735
+            },
+            temperature: {
+                celsius: 'celsius', c: 'celsius', centigrade: 'celsius',
+                fahrenheit: 'fahrenheit', f: 'fahrenheit',
+                kelvin: 'kelvin', k: 'kelvin'
+            },
+            area: {
+                squaremeter: 1, sqm: 1, squaremeters: 1, m2: 1,
+                squarekilometer: 1000000, sqkm: 1000000, squarekilometers: 1000000, km2: 1000000,
+                squarefoot: 0.092903, sqft: 0.092903, squarefeet: 0.092903, ft2: 0.092903,
+                squareinch: 0.00064516, sqin: 0.00064516, squareinches: 0.00064516, in2: 0.00064516,
+                acre: 4046.86, acres: 4046.86,
+                hectare: 10000, hectares: 10000, ha: 10000
+            },
+            time: {
+                second: 1, seconds: 1, s: 1, sec: 1,
+                minute: 60, minutes: 60, min: 60, mins: 60,
+                hour: 3600, hours: 3600, h: 3600, hr: 3600, hrs: 3600,
+                day: 86400, days: 86400, d: 86400,
+                week: 604800, weeks: 604800, wk: 604800, wks: 604800,
+                month: 2629746, months: 2629746, mo: 2629746,
+                year: 31556952, years: 31556952, y: 31556952, yr: 31556952, yrs: 31556952
+            }
+        };
+
+        // Temperature conversion functions
+        function convertTemperature(value, fromUnit, toUnit) {
+            let celsius;
+            if (fromUnit === 'celsius') celsius = value;
+            else if (fromUnit === 'fahrenheit') celsius = (value - 32) * 5/9;
+            else if (fromUnit === 'kelvin') celsius = value - 273.15;
+
+            if (toUnit === 'celsius') return celsius;
+            else if (toUnit === 'fahrenheit') return celsius * 9/5 + 32;
+            else if (toUnit === 'kelvin') return celsius + 273.15;
+        }
+
+        // Regular conversion function
+        function convert(value, fromUnit, toUnit, category) {
+            if (category === 'temperature') {
+                return convertTemperature(value, fromUnit, toUnit);
+            }
+            
+            const fromFactor = conversions[category][fromUnit];
+            const toFactor = conversions[category][toUnit];
+            
+            if (!fromFactor || !toFactor) return null;
+            
+            return (value * fromFactor) / toFactor;
+        }
+
+        // Find unit category
+        function findUnitCategory(unit) {
+            const cleanUnit = unit.toLowerCase().replace(/[^a-z]/g, '');
+            
+            for (const [category, units] of Object.entries(conversions)) {
+                if (units[cleanUnit]) {
+                    return { category, unit: cleanUnit };
+                }
+            }
+            return null;
+        }
+
+        // Parse conversion request
+        function parseConversion(input) {
+            const patterns = [
+                /(\d+(?:\.\d+)?)\s*([\w\s°]+?)\s*(?:to|into|in|→)\s*([\w\s°]+)/i,
+                /convert\s*(\d+(?:\.\d+)?)\s*([\w\s°]+?)\s*(?:to|into|in)\s*([\w\s°]+)/i,
+                /(\d+(?:\.\d+)?)\s*([\w\s°]+?)\s*=\s*\?\s*([\w\s°]+)/i,
+                /how\s*many\s*([\w\s°]+?)\s*(?:is|are|in)\s*(\d+(?:\.\d+)?)\s*([\w\s°]+)/i
+            ];
+
+            for (const pattern of patterns) {
+                const match = input.match(pattern);
+                if (match) {
+                    if (pattern === patterns[3]) {
+                        return {
+                            value: parseFloat(match[2]),
+                            fromUnit: match[3].trim().toLowerCase(),
+                            toUnit: match[1].trim().toLowerCase()
+                        };
+                    }
+                    return {
+                        value: parseFloat(match[1]),
+                        fromUnit: match[2].trim().toLowerCase(),
+                        toUnit: match[3].trim().toLowerCase()
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Quants problem solvers
+        function solveSpeedTimeDistance(input) {
+            const q = input.toLowerCase();
+            
+            // Extract values with units
+            const distMatch = q.match(/(\d+(?:\.\d+)?)\s*(km|kilometer|kilometers|m|meter|meters|mile|miles)\b/);
+            const timeMatch = q.match(/(\d+(?:\.\d+)?)\s*(h|hr|hour|hours|min|minute|minutes|s|sec|second|seconds)\b/);
+            const speedMatch = q.match(/(\d+(?:\.\d+)?)\s*(km\/h|kmh|kph|m\/s|mps|mph)\b/);
+            
+            const wantTime = /(\btime\b|\bhow long\b|\btime\?\b)/.test(q);
+            const wantSpeed = /(\bspeed\b|\bvelocity\b|\bspeed\?\b)/.test(q);
+            const wantDistance = /(\bdistance\b|\bdistance\?\b)/.test(q);
+
+            function toKm(d, unit) {
+                if (unit.startsWith('km')) return d;
+                if (unit === 'mile' || unit === 'miles') return d * 1.60934;
+                if (unit === 'm' || unit === 'meter' || unit === 'meters') return d / 1000;
+                return d;
+            }
+
+            function toHours(t, unit) {
+                if (unit === 'h' || unit === 'hr' || unit === 'hour' || unit === 'hours') return t;
+                if (unit.startsWith('min')) return t / 60;
+                if (unit === 's' || unit === 'sec' || unit === 'second' || unit === 'seconds') return t / 3600;
+                return t;
+            }
+
+            function speedToKmh(v, unit) {
+                if (unit === 'km/h' || unit === 'kmh' || unit === 'kph') return v;
+                if (unit === 'm/s' || unit === 'mps') return v * 3.6;
+                if (unit === 'mph') return v * 1.60934;
+                return v;
+            }
+
+            const distVal = distMatch ? toKm(parseFloat(distMatch[1]), distMatch[2]) : null;
+            const timeVal = timeMatch ? toHours(parseFloat(timeMatch[1]), timeMatch[2]) : null;
+            const speedVal = speedMatch ? speedToKmh(parseFloat(speedMatch[1]), speedMatch[2]) : null;
+
+            if (speedVal && timeVal && (wantDistance || (!wantSpeed && !wantTime))) {
+                const D = speedVal * timeVal;
+                return {
+                    type: 'distance',
+                    value: D,
+                    unit: 'km',
+                    steps: `Using Distance = Speed × Time<br>${Math.round(speedVal * 100) / 100} km/h × ${Math.round(timeVal * 100) / 100} h = ${Math.round(D * 100) / 100} km`
+                };
+            }
+
+            if (distVal && timeVal && (wantSpeed || (!wantDistance && !wantTime))) {
+                const S = distVal / timeVal;
+                return {
+                    type: 'speed',
+                    value: S,
+                    unit: 'km/h',
+                    steps: `Using Speed = Distance ÷ Time<br>${Math.round(distVal * 100) / 100} km ÷ ${Math.round(timeVal * 100) / 100} h = ${Math.round(S * 100) / 100} km/h`
+                };
+            }
+
+            if (distVal && speedVal && (wantTime || (!wantDistance && !wantSpeed))) {
+                const T = distVal / speedVal;
+                return {
+                    type: 'time',
+                    value: T,
+                    unit: 'h',
+                    steps: `Using Time = Distance ÷ Speed<br>${Math.round(distVal * 100) / 100} km ÷ ${Math.round(speedVal * 100) / 100} km/h = ${Math.round(T * 100) / 100} h`
+                };
+            }
+
+            return null;
+        }
+
+        function solveTrainProblems(input) {
+            const q = input.toLowerCase();
+            
+            // Extract train lengths and speeds
+            const lengths = [...q.matchAll(/(\d+(?:\.\d+)?)\s*(m|meter|meters)\b/g)].map(m => parseFloat(m[1]));
+            const speeds = [...q.matchAll(/(\d+(?:\.\d+)?)\s*(m\/s|mps|km\/h|kmh|kph)\b/g)].map(m => {
+                let v = parseFloat(m[1]);
+                if (m[2] === 'km/h' || m[2] === 'kmh' || m[2] === 'kph') v = v / 3.6; // convert to m/s
+                return v;
+            });
+            
+            const bridge = q.match(/bridge\s*(\d+(?:\.\d+)?)\s*(m|meter|meters)/);
+            const opposite = /\b(opposite|opposite direction|towards)\b/.test(q);
+            const same = /\b(same direction)\b/.test(q);
+
+            if (bridge && lengths.length >= 1 && speeds.length >= 1) {
+                const trainLength = lengths[0];
+                const bridgeLength = parseFloat(bridge[1]);
+                const speed = speeds[0];
+                const time = (trainLength + bridgeLength) / speed;
+                
+                return {
+                    type: 'train-bridge',
+                    value: time,
+                    unit: 's',
+                    steps: `Train crossing bridge:<br>Time = (Train length + Bridge length) ÷ Speed<br>(${trainLength} + ${bridgeLength}) ÷ ${Math.round(speed * 100) / 100} = ${Math.round(time * 100) / 100} seconds`
+                };
+            }
+
+            if (lengths.length >= 2 && speeds.length >= 2) {
+                const totalLength = lengths[0] + lengths[1];
+                const speed1 = speeds[0];
+                const speed2 = speeds[1];
+                const relativeSpeed = opposite ? (speed1 + speed2) : Math.abs(speed1 - speed2);
+                const time = totalLength / relativeSpeed;
+                
+                return {
+                    type: 'trains-crossing',
+                    value: time,
+                    unit: 's',
+                    steps: `Two trains crossing:<br>Relative speed = ${Math.round(speed1 * 100) / 100} ${opposite ? '+' : '±'} ${Math.round(speed2 * 100) / 100} = ${Math.round(relativeSpeed * 100) / 100} m/s<br>Time = Total length ÷ Relative speed<br>${totalLength} ÷ ${Math.round(relativeSpeed * 100) / 100} = ${Math.round(time * 100) / 100} seconds`
+                };
+            }
+
+            return null;
+        }
+
+        function solveBoatProblems(input) {
+            const q = input.toLowerCase();
+            
+            const dist = q.match(/(\d+(?:\.\d+)?)\s*(km|kilometer|kilometers
